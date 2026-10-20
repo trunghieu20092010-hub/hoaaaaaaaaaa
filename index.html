@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dành bạn, cả một vườn thương.</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #87CEEB;
+    }
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    #ui {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .text-intro {
+      text-align: center;
+      color: #5a3e3e;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      margin-bottom: 20px;
+    }
+    .text-intro.show { opacity: 1; }
+    .text-intro h1 {
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      font-weight: 500;
+      margin-bottom: 8px;
+      text-shadow: 0 1px 3px rgba(255,255,255,0.7);
+    }
+    .text-intro p {
+      font-size: clamp(0.95rem, 2.5vw, 1.15rem);
+      opacity: 0.85;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border-radius: 16px;
+      padding: 28px 32px;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+      opacity: 0;
+      transform: translateY(30px) scale(0.95);
+      transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: auto;
+      text-align: center;
+      color: #4a3a3a;
+      line-height: 1.55;
+    }
+    .card.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .card .icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .card h2 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #c45c7a;
+    }
+    .card p { font-size: 0.95rem; margin-bottom: 10px; }
+    .card .highlight {
+      background: linear-gradient(90deg, #ffeef3, #fff0f5);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .card .sign {
+      margin-top: 18px;
+      font-style: italic;
+      color: #888;
+      font-size: 0.9rem;
+    }
+    .buttons {
+      position: absolute;
+      bottom: 28px;
+      left: 0; right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      pointer-events: auto;
+      opacity: 0;
+      transition: opacity 0.6s ease 0.3s;
+    }
+    .buttons.show { opacity: 1; }
+    .btn {
+      padding: 10px 22px;
+      border: none;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      background: rgba(255,255,255,0.85);
+      color: #c45c7a;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      transition: all 0.25s;
+      backdrop-filter: blur(6px);
+    }
+    .btn:hover {
+      background: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div id="ui">
+    <div class="text-intro" id="intro">
+      <h1>Từ một bông hoa nhỏ...</h1>
+      <p>Chạm vào hoa, một điều diệu kỳ đang chờ bạn.</p>
+    </div>
+
+    <div class="card" id="card">
+      <div class="icon">🌸</div>
+      <h2>Gửi bạn thương mến,</h2>
+      <p><strong>Mong những điều đẹp đẽ luôn nở bên bạn.</strong></p>
+      <p>Một bông hoa có thể làm một ngày thêm đẹp.<br>
+         Còn bạn, làm thế giới này dịu dàng hơn.</p>
+      <p class="highlight">Nhân ngày 20/10, chúc bạn luôn được yêu thương, trân trọng và có thật nhiều niềm vui. Mong bạn đủ bình yên để tận hưởng những điều nhỏ bé, đủ tự tin để theo đuổi những điều mình yêu.</p>
+      <p>Hôm nay và cả những ngày sau,<br>hãy cứ rạng rỡ theo cách của riêng mình nhé.</p>
+      <p><strong>Gửi bạn thật nhiều thương mến ♥</strong></p>
+      <div class="sign">Người vườn hoa</div>
+    </div>
+  </div>
+
+  <div class="buttons" id="buttons">
+    <button class="btn" id="btnReread">Đọc lại thiệp</button>
+    <button class="btn" id="btnReset">Cho hoa nở lại</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    let W, H, dpr;
+
+    function resize() {
+      dpr = window.devicePixelRatio || 1;
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ===== Palette màu hoa giống video =====
+    const COLORS = [
+      ['#ff9ec7', '#ff6b9d', '#ff4d88'], // hồng
+      ['#c9a0dc', '#b57edc', '#9b59b6'], // tím
+      ['#a8e6cf', '#7fdbb6', '#56c596'], // mint
+      ['#ffd3b6', '#ffaa85', '#ff8c66'], // cam đào
+      ['#b5e8f7', '#7ec8e3', '#5bb5d9'], // xanh dương nhạt
+      ['#ffeaa7', '#fdcb6e', '#f9a825'], // vàng
+      ['#fab1a0', '#ff7675', '#e17055'], // đỏ san hô
+      ['#dfe6e9', '#b2bec3', '#636e72']  // trắng xám nhẹ
+    ];
+
+    // ===== Clouds =====
+    const clouds = [];
+    for (let i = 0; i < 8; i++) {
+      clouds.push({
+        x: Math.random() * W,
+        y: 40 + Math.random() * (H * 0.35),
+        s: 0.6 + Math.random() * 1.2,
+        speed: 0.15 + Math.random() * 0.25
+      });
+    }
+
+    function drawCloud(c) {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.scale(c.s, c.s);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 28, 0, Math.PI * 2);
+      ctx.arc(25, -8, 22, 0, Math.PI * 2);
+      ctx.arc(50, 2, 26, 0, Math.PI * 2);
+      ctx.arc(22, 12, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ===== Flower class =====
+    class Flower {
+      constructor(x, y, size, colorSet, delay = 0) {
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.colors = colorSet;
+        this.progress = 0;      // 0 → 1
+        this.delay = delay;
+        this.sway = Math.random() * Math.PI * 2;
+        this.swaySpeed = 0.8 + Math.random() * 0.6;
+        this.stemH = size * (2.8 + Math.random() * 1.2);
+        this.leafSide = Math.random() > 0.5 ? 1 : -1;
+      }
+
+      update(dt, t) {
+        if (t > this.delay) {
+          this.progress = Math.min(1, this.progress + dt * 0.55);
+        }
+        this.sway += dt * this.swaySpeed;
+      }
+
+      draw(ctx) {
+        const p = this.easeOutCubic(this.progress);
+        if (p <= 0) return;
+
+        const sway = Math.sin(this.sway) * 4 * p;
+        const stemTopX = this.x + sway;
+        const stemTopY = this.y - this.stemH * p;
+
+        // Stem
+        ctx.strokeStyle = `rgba(46, 125, 50, ${0.7 * p})`;
+        ctx.lineWidth = 2.5 * (this.size / 40);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.quadraticCurveTo(
+          this.x + sway * 0.6,
+          this.y - this.stemH * 0.5 * p,
+          stemTopX, stemTopY
+        );
+        ctx.stroke();
+
+        // Leaf
+        if (p > 0.3) {
+          const lp = (p - 0.3) / 0.7;
+          ctx.fillStyle = `rgba(56, 142, 60, ${0.85 * lp})`;
+          ctx.beginPath();
+          const lx = this.x + sway * 0.4;
+          const ly = this.y - this.stemH * 0.45 * p;
+          ctx.ellipse(lx + 12 * this.leafSide, ly, 14 * lp, 6 * lp, -0.5 * this.leafSide, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Flower head
+        if (p > 0.4) {
+          const fp = (p - 0.4) / 0.6;
+          this.drawRose(ctx, stemTopX, stemTopY, this.size * fp, fp);
+        }
+      }
+
+      drawRose(ctx, x, y, r, alpha) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.globalAlpha = alpha;
+
+        const layers = 4;
+        for (let layer = layers; layer >= 1; layer--) {
+          const layerR = r * (0.35 + layer * 0.18);
+          const petals = 5 + layer;
+          const color = this.colors[Math.min(layer - 1, this.colors.length - 1)];
+
+          for (let i = 0; i < petals; i++) {
+            const angle = (i / petals) * Math.PI * 2 + layer * 0.3;
+            ctx.save();
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(
+              -layerR * 0.55, -layerR * 0.1,
+              -layerR * 0.55, -layerR * 0.75,
+              0, -layerR
+            );
+            ctx.bezierCurveTo(
+              layerR * 0.55, -layerR * 0.75,
+              layerR * 0.55, -layerR * 0.1,
+              0, 0
+            );
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
+        // Center
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.18, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff3b0';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.08, 0, Math.PI * 2);
+        ctx.fillStyle = '#f1c40f';
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+      }
+    }
+
+    // ===== Generate garden =====
+    let flowers = [];
+    let startTime = 0;
+    let phase = 0; // 0: growing, 1: show intro, 2: show card
+
+    function createGarden() {
+      flowers = [];
+      // Center big flower first
+      flowers.push(new Flower(W / 2, H * 0.72, 48, COLORS[0], 0.3));
+
+      // Surrounding flowers
+      const count = Math.floor(W / 28);
+      for (let i = 0; i < count; i++) {
+        const x = 30 + Math.random() * (W - 60);
+        const y = H * 0.55 + Math.random() * (H * 0.38);
+        const size = 22 + Math.random() * 28;
+        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        const delay = 0.8 + Math.random() * 3.5;
+        flowers.push(new Flower(x, y, size, color, delay));
+      }
+      // sort by y so lower flowers draw later (in front)
+      flowers.sort((a, b) => a.y - b.y);
+    }
+
+    function drawSky() {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#87CEEB');
+      g.addColorStop(0.55, '#b8e0f0');
+      g.addColorStop(1, '#e8f5e9');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+
+      // soft sun glow
+      const sg = ctx.createRadialGradient(W * 0.75, H * 0.18, 0, W * 0.75, H * 0.18, 180);
+      sg.addColorStop(0, 'rgba(255,250,200,0.45)');
+      sg.addColorStop(1, 'rgba(255,250,200,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // ===== Animation loop =====
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.033, (now - last) / 1000);
+      last = now;
+      const t = (now - startTime) / 1000;
+
+      drawSky();
+
+      // clouds
+      clouds.forEach(c => {
+        c.x += c.speed;
+        if (c.x > W + 80) c.x = -80;
+        drawCloud(c);
+      });
+
+      // flowers
+      flowers.forEach(f => {
+        f.update(dt, t);
+        f.draw(ctx);
+      });
+
+      // phases
+      if (phase === 0 && t > 5.2) {
+        phase = 1;
+        document.getElementById('intro').classList.add('show');
+      }
+      if (phase === 1 && t > 7.8) {
+        phase = 2;
+        document.getElementById('intro').classList.remove('show');
+        document.getElementById('card').classList.add('show');
+        document.getElementById('buttons').classList.add('show');
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    // ===== Controls =====
+    function reset() {
+      phase = 0;
+      startTime = performance.now();
+      document.getElementById('intro').classList.remove('show');
+      document.getElementById('card').classList.remove('show');
+      document.getElementById('buttons').classList.remove('show');
+      createGarden();
+    }
+
+    document.getElementById('btnReset').addEventListener('click', reset);
+    document.getElementById('btnReread').addEventListener('click', () => {
+      document.getElementById('card').classList.remove('show');
+      setTimeout(() => document.getElementById('card').classList.add('show'), 300);
+    });
+
+    // click anywhere early to speed up a bit (optional)
+    canvas.addEventListener('click', () => {
+      if (phase === 0) {
+        flowers.forEach(f => f.progress = Math.min(1, f.progress + 0.25));
+      }
+    });
+
+    // Start
+    createGarden();
+    startTime = performance.now();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
